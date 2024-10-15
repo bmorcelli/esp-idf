@@ -62,9 +62,9 @@ void __attribute__((noreturn)) call_start_cpu0(void)
     /*  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= HERE IS WHERE THE MAGIC HAPPENS!  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=  */
 
 
-    esp_rom_printf("[%s] Turned on because (1= POWERON_RESET) (Other= Probably forced by launcher)--> %d\n", TAG, esp_rom_get_reset_reason(0));
+    esp_rom_printf("[%s] Turned on because (1= POWERON_RESET or 8==ESP_RST_DEEPSLEEP) (Other= Probably forced by launcher)--> %d\n", TAG, esp_rom_get_reset_reason(0));
 
-    if(esp_rom_get_reset_reason(0)==1) { //Verifica se foi ligado (poweron_reset==1) ou reset por aplicação
+    if(esp_rom_get_reset_reason(0)==1 || esp_rom_get_reset_reason(0)==8 || esp_rom_get_reset_reason(0)==2) { //Verifica se foi ligado (poweron_reset==1) ou reset por aplicação
         ESP_LOGE(TAG, "## ESP turned on manually, as expected.");
         boot_index = TEST_APP_INDEX;
     } 
