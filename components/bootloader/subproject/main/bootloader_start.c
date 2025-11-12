@@ -57,7 +57,20 @@ void __attribute__((noreturn)) call_start_cpu0(void)
 #if CONFIG_SECURE_ENABLE_TEE
     bootloader_utility_load_tee_image(&bs);
 #endif
+    /*  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= HERE IS WHERE THE MAGIC HAPPENS!  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=  */
 
+    esp_rom_printf("[%s] Turned on because (1= POWERON_RESET or 5==ESP_RST_DEEPSLEEP) (Other= Probably forced by launcher)--> %d\n", TAG, esp_rom_get_reset_reason(0));
+    //Verifica se foi ligado (poweron_reset==1), Deepsleep ou reset por aplicação
+    if(esp_rom_get_reset_reason(0)==1 || esp_rom_get_reset_reason(0)==5) { 
+        ESP_LOGE(TAG, "## ESP turned on manually, as expected.");
+#if CONFIG_IDF_TARGET_ESP32P4
+        boot_index = FACTORY_INDEX;
+#else
+        boot_index = TEST_APP_INDEX;
+#endif
+    } 
+
+    /*  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=   HERE IS WHERE THE MAGIC ENDs!   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=  */
     // 3. Load the app image for booting
     bootloader_utility_load_boot_image(&bs, boot_index);
 }
