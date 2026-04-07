@@ -63,11 +63,11 @@ void __attribute__((noreturn)) call_start_cpu0(void)
     //Verifica se foi ligado (poweron_reset==1), Deepsleep ou reset por aplicação
     if(esp_rom_get_reset_reason(0)==1 || esp_rom_get_reset_reason(0)==5) { 
         ESP_LOGE(TAG, "## ESP turned on manually, as expected.");
-#if CONFIG_IDF_TARGET_ESP32P4
-        boot_index = FACTORY_INDEX;
-#else
+// #if CONFIG_IDF_TARGET_ESP32P4
+//         boot_index = FACTORY_INDEX;
+// #else
         boot_index = TEST_APP_INDEX;
-#endif
+// #endif
     } 
 
     /*  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=   HERE IS WHERE THE MAGIC ENDs!   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=  */
