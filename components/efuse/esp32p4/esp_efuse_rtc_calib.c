@@ -22,7 +22,7 @@ int esp_efuse_rtc_calib_get_ver(void)
 {
     uint32_t cali_version = 0;
     uint32_t blk_ver = efuse_hal_blk_version();
-    if (blk_ver >= 1 && blk_ver < 100) {
+    if (blk_ver >= 1) {
         cali_version = ESP_EFUSE_ADC_CALIB_VER1;
     } else {
         ESP_LOGW("eFuse", "calibration efuse version does not match, set default version to 0");
@@ -199,7 +199,6 @@ esp_err_t esp_efuse_rtc_calib_get_tsens_val(float* tsens_cal)
     const esp_efuse_desc_t** cal_temp_efuse;
     cal_temp_efuse = ESP_EFUSE_TEMPERATURE_SENSOR;
     int cal_temp_size = esp_efuse_get_field_size(cal_temp_efuse);
-    assert(cal_temp_size == 9);
 
     uint32_t cal_temp = 0;
     esp_err_t err = esp_efuse_read_field_blob(cal_temp_efuse, &cal_temp, cal_temp_size);

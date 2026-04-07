@@ -1,12 +1,14 @@
 menu "Power Management"
 
     config PM_SLEEP_FUNC_IN_IRAM
-        bool "Place Power Management module functions in IRAM" if IDF_TARGET_ESP32C2
-        default y
+        bool "Place Power Management module functions in IRAM"
+        default n
         select PM_SLP_IRAM_OPT if SOC_LIGHT_SLEEP_SUPPORTED
         select PM_RTOS_IDLE_OPT if FREERTOS_USE_TICKLESS_IDLE
         select ESP_PERIPH_CTRL_FUNC_IN_IRAM
         select ESP_REGI2C_CTRL_FUNC_IN_IRAM
+        select RTC_CLK_FUNC_IN_IRAM
+        select RTC_TIME_FUNC_IN_IRAM
 
 
     config PM_ENABLE
@@ -209,5 +211,13 @@ menu "Power Management"
 
             NOTE: Enabling these callbacks may change sleep duration calculations based on time spent in callback and
             hence it is highly recommended to keep them as short as possible
+
+    config PM_WORKAROUND_FREQ_LIMIT_ENABLED
+        bool
+        default y if SPI_FLASH_FREQ_LIMIT_C5_240MHZ
+        help
+            Workaround for frequency limit during encrypted flash writes.
+            Only enabled when SPI_FLASH_FREQ_LIMIT_C5_240MHZ is enabled.
+            This is an internal configuration, automatically set based on SPI Flash configuration.
 
 endmenu # "Power Management"

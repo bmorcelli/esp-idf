@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -158,6 +158,16 @@ esp_err_t esp_cache_aligned_calloc(size_t n, size_t size, uint32_t heap_caps, vo
  */
 __attribute__((deprecated("Use 'heap_caps_calloc' with MALLOC_CAP_CACHE_ALIGNED caps instead")))
 esp_err_t esp_cache_aligned_calloc_prefer(size_t n, size_t size, void **out_ptr, size_t *actual_size, size_t flag_nums, ...);
+
+/**
+ * @brief Enter critical section for cache sync operations
+ */
+void esp_cache_sync_ops_enter_critical_section(void);
+
+/**
+ * @brief Exit critical section for cache sync operations
+ */
+void esp_cache_sync_ops_exit_critical_section(void);
 
 /**
  * @brief Get Cache alignment requirement for data

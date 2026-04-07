@@ -177,7 +177,7 @@ esp_efuse_purpose_t esp_efuse_get_key_purpose(esp_efuse_block_t block)
     }
     unsigned idx = block - EFUSE_BLK_KEY0;
     uint8_t value = 0;
-    esp_err_t err = esp_efuse_read_field_blob(s_table[idx].keypurpose, &value, s_table[idx].keypurpose[0]->bit_count);
+    esp_err_t err = esp_efuse_read_field_blob(s_table[idx].keypurpose, &value, esp_efuse_get_field_size(s_table[idx].keypurpose));
     if (err != ESP_OK) {
         return ESP_EFUSE_KEY_PURPOSE_MAX;
     }
@@ -190,7 +190,7 @@ esp_err_t esp_efuse_set_key_purpose(esp_efuse_block_t block, esp_efuse_purpose_t
         return ESP_ERR_INVALID_ARG;
     }
     unsigned idx = block - EFUSE_BLK_KEY0;
-    return esp_efuse_write_field_blob(s_table[idx].keypurpose, &purpose, s_table[idx].keypurpose[0]->bit_count);
+    return esp_efuse_write_field_blob(s_table[idx].keypurpose, &purpose, esp_efuse_get_field_size(s_table[idx].keypurpose));
 }
 
 bool esp_efuse_get_keypurpose_dis_write(esp_efuse_block_t block)
@@ -308,17 +308,17 @@ esp_err_t esp_efuse_write_key(esp_efuse_block_t block, esp_efuse_purpose_t purpo
 #if SOC_EFUSE_ECDSA_KEY
             purpose == ESP_EFUSE_KEY_PURPOSE_ECDSA_KEY ||
 #endif
-#if SOC_EFUSE_ECDSA_KEY_P192
+#if SOC_EFUSE_ECDSA_KEY_P192 || EFUSE_LL_HAS_ECDSA_KEY_P192
             purpose == ESP_EFUSE_KEY_PURPOSE_ECDSA_KEY_P192 ||
 #endif
-#if SOC_EFUSE_ECDSA_KEY_P384
+#if SOC_EFUSE_ECDSA_KEY_P384 || EFUSE_LL_HAS_ECDSA_KEY_P384
             purpose == ESP_EFUSE_KEY_PURPOSE_ECDSA_KEY_P384_L ||
             purpose == ESP_EFUSE_KEY_PURPOSE_ECDSA_KEY_P384_H ||
 #endif
-#if SOC_PSRAM_ENCRYPTION_XTS_AES_128
+#if SOC_PSRAM_ENCRYPTION_XTS_AES_128 || EFUSE_LL_HAS_PSRAM_ENCRYPTION_XTS_AES_128
             purpose == ESP_EFUSE_KEY_PURPOSE_XTS_AES_128_PSRAM_KEY ||
 #endif
-#if SOC_PSRAM_ENCRYPTION_XTS_AES_256
+#if SOC_PSRAM_ENCRYPTION_XTS_AES_256 || EFUSE_LL_HAS_PSRAM_ENCRYPTION_XTS_AES_256
             purpose == ESP_EFUSE_KEY_PURPOSE_XTS_AES_256_PSRAM_KEY_1 ||
             purpose == ESP_EFUSE_KEY_PURPOSE_XTS_AES_256_PSRAM_KEY_2 ||
 #endif

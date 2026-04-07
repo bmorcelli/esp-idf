@@ -125,11 +125,11 @@ config SOC_CPU_COPROC_NUM
 
 config SOC_CPU_BREAKPOINTS_NUM
     int
-    default 4
+    default 3
 
 config SOC_CPU_WATCHPOINTS_NUM
     int
-    default 4
+    default 3
 
 config SOC_CPU_WATCHPOINT_MAX_REGION_SIZE
     hex
@@ -264,6 +264,10 @@ config SOC_SPI_MEM_SUPPORT_CHECK_SUS
     default y
 
 config SOC_SPI_MEM_SUPPORT_WRAP
+    bool
+    default y
+
+config SOC_SPI_MEM_PSRAM_FREQ_AXI_CONSTRAINED
     bool
     default y
 

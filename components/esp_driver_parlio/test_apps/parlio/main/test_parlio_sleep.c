@@ -94,7 +94,7 @@ static void test_parlio_sleep_retention(bool allow_pd)
 
     parlio_rx_level_delimiter_config_t lvl_deli_cfg = {
         .valid_sig_line_id = PARLIO_RX_UNIT_MAX_DATA_WIDTH - 1,
-        .sample_edge = PARLIO_SAMPLE_EDGE_POS,
+        .sample_edge = PARLIO_SAMPLE_EDGE_NEG,  // opposite to tx unit in case of timing issue
         .bit_pack_order = PARLIO_BIT_PACK_ORDER_MSB,
         .eof_data_len = TEST_PAYLOAD_SIZE,
         .timeout_ticks = 0,
@@ -133,7 +133,7 @@ static void test_parlio_sleep_retention(bool allow_pd)
 
     printf("check if the sleep happened as expected\r\n");
     TEST_ASSERT_EQUAL(0, sleep_ctx.sleep_request_result);
-#if SOC_PARLIO_SUPPORT_SLEEP_RETENTION && !SOC_PM_TOP_PD_NOT_ALLOWED
+#if SOC_PARLIO_SUPPORT_SLEEP_RETENTION
     // check if the power domain also is powered down
     TEST_ASSERT_EQUAL(allow_pd ? PMU_SLEEP_PD_TOP : 0, (sleep_ctx.sleep_flags) & PMU_SLEEP_PD_TOP);
 #endif

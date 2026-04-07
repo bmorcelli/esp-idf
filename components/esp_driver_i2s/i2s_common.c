@@ -371,6 +371,40 @@ err:
     return ret;
 }
 
+#if SOC_I2S_HW_VERSION_1
+esp_err_t i2s_channel_change_port(i2s_chan_handle_t handle, int id)
+{
+    I2S_NULL_POINTER_CHECK(TAG, handle);
+    ESP_RETURN_ON_FALSE(id >= 0 && id < SOC_I2S_NUM, ESP_ERR_INVALID_ARG, TAG, "invalid I2S port id");
+    if (id == handle->controller->id) {
+        return ESP_OK;
+    }
+    i2s_controller_t *i2s_obj = i2s_acquire_controller_obj(id);
+    if (!i2s_obj || !i2s_take_available_channel(i2s_obj, handle->dir)) {
+        return ESP_ERR_NOT_FOUND;
+    }
+    i2s_controller_t *old_i2s_obj = handle->controller;
+    portENTER_CRITICAL(&g_i2s.spinlock);
+    if (handle->dir == I2S_DIR_TX) {
+        i2s_obj->tx_chan = handle;
+        i2s_obj->chan_occupancy |= I2S_DIR_TX;
+        old_i2s_obj->tx_chan = NULL;
+        old_i2s_obj->full_duplex = false;
+        old_i2s_obj->chan_occupancy &= ~I2S_DIR_TX;
+    } else {
+        i2s_obj->rx_chan = handle;
+        i2s_obj->chan_occupancy |= I2S_DIR_RX;
+        old_i2s_obj->rx_chan = NULL;
+        old_i2s_obj->full_duplex = false;
+        old_i2s_obj->chan_occupancy &= ~I2S_DIR_RX;
+    }
+    handle->controller = i2s_obj;
+    portEXIT_CRITICAL(&g_i2s.spinlock);
+
+    return ESP_OK;
+}
+#endif
+
 #ifndef __cplusplus
 /* To make sure the i2s_event_callbacks_t is same size as i2s_event_callbacks_internal_t */
 _Static_assert(sizeof(i2s_event_callbacks_t) == sizeof(i2s_event_callbacks_internal_t), "Invalid size of i2s_event_callbacks_t structure");
@@ -417,6 +451,9 @@ uint32_t i2s_get_buf_size(i2s_chan_handle_t handle, uint32_t data_bit_width, uin
     uint32_t bytes_per_sample = (data_bit_width + 7) / 8;
 #endif  // CONFIG_IDF_TARGET_ESP32
     uint32_t bytes_per_frame = bytes_per_sample * active_chan;
+    if (bytes_per_frame == 0) {
+        return 0;
+    }
     uint32_t bufsize = dma_frame_num * bytes_per_frame;
 #if SOC_CACHE_INTERNAL_MEM_VIA_L1CACHE
     /* bufsize need to align with cache line size */
@@ -562,6 +599,11 @@ uint32_t i2s_get_source_clk_freq(i2s_clock_src_t clk_src, uint32_t mclk_freq_hz)
 #if SOC_I2S_SUPPORTS_APLL
     if (clk_src == I2S_CLK_SRC_APLL) {
         return i2s_set_get_apll_freq(mclk_freq_hz);
+    }
+#endif
+#ifdef I2S_LL_DEFAULT_CLK_SRC
+    if (clk_src == I2S_CLK_SRC_DEFAULT) {
+        clk_src = I2S_LL_DEFAULT_CLK_SRC;
     }
 #endif
     esp_clk_tree_src_get_freq_hz(clk_src, ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED, &clk_freq);
@@ -993,6 +1035,7 @@ esp_err_t i2s_new_channel(const i2s_chan_config_t *chan_cfg, i2s_chan_handle_t *
         ESP_GOTO_ON_ERROR(i2s_register_channel(i2s_obj, I2S_DIR_TX, chan_cfg->dma_desc_num),
                           err, TAG, "register I2S tx channel failed");
         i2s_obj->tx_chan->role = chan_cfg->role;
+        i2s_obj->tx_chan->is_port_auto = id == I2S_NUM_AUTO;
         i2s_obj->tx_chan->intr_prio_flags = chan_cfg->intr_priority ? BIT(chan_cfg->intr_priority) : ESP_INTR_FLAG_LOWMED;
         i2s_obj->tx_chan->dma.auto_clear_after_cb = chan_cfg->auto_clear_after_cb;
         i2s_obj->tx_chan->dma.auto_clear_before_cb = chan_cfg->auto_clear_before_cb;
@@ -1008,6 +1051,7 @@ esp_err_t i2s_new_channel(const i2s_chan_config_t *chan_cfg, i2s_chan_handle_t *
         ESP_GOTO_ON_ERROR(i2s_register_channel(i2s_obj, I2S_DIR_RX, chan_cfg->dma_desc_num),
                           err, TAG, "register I2S rx channel failed");
         i2s_obj->rx_chan->role = chan_cfg->role;
+        i2s_obj->rx_chan->is_port_auto = id == I2S_NUM_AUTO;
         i2s_obj->rx_chan->intr_prio_flags = chan_cfg->intr_priority ? BIT(chan_cfg->intr_priority) : ESP_INTR_FLAG_LOWMED;
         i2s_obj->rx_chan->dma.desc_num = chan_cfg->dma_desc_num;
         i2s_obj->rx_chan->dma.frame_num = chan_cfg->dma_frame_num;
@@ -1158,6 +1202,12 @@ found:
     chan_info->dir = handle->dir;
     chan_info->role = handle->role;
     chan_info->mode = handle->mode;
+    chan_info->is_enabled = handle->state == I2S_CHAN_STATE_RUNNING;
+    chan_info->clk_src = handle->clk_src;
+    chan_info->sclk_hz = handle->sclk_hz;
+    chan_info->mclk_hz = handle->curr_mclk_hz;
+    chan_info->bclk_hz = handle->bclk_hz;
+    chan_info->mode_cfg = handle->mode_info;
     chan_info->total_dma_buf_size = handle->state >= I2S_CHAN_STATE_READY ? handle->dma.desc_num * handle->dma.buf_size : 0;
     if (handle->controller->full_duplex) {
         if (handle->dir == I2S_DIR_TX) {

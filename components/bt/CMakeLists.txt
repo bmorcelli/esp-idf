@@ -47,6 +47,9 @@ set(ble_mesh_v11_include_dirs
     "esp_ble_mesh/v1.1/api/core/include"
     "esp_ble_mesh/v1.1/api/models/include"
     "esp_ble_mesh/v1.1/btc/include"
+    "esp_ble_mesh/v1.1/include"
+    "esp_ble_mesh/v1.1/dfu"
+    "esp_ble_mesh/v1.1/mbt"
 )
 
 if(CONFIG_IDF_DOC_BUILD)
@@ -571,7 +574,6 @@ if(CONFIG_BT_ENABLED)
                     "esp_ble_mesh/core/storage/settings.c"
                     "esp_ble_mesh/core/access.c"
                     "esp_ble_mesh/core/adv_common.c"
-                    "esp_ble_mesh/core/ble_adv.c"
                     "esp_ble_mesh/core/beacon.c"
                     "esp_ble_mesh/core/cfg_cli.c"
                     "esp_ble_mesh/core/cfg_srv.c"
@@ -623,9 +625,13 @@ if(CONFIG_BT_ENABLED)
                         "esp_ble_mesh/v1.1/api/core/esp_ble_mesh_sar_model_api.c"
                         "esp_ble_mesh/v1.1/api/core/esp_ble_mesh_srpl_model_api.c"
                         "esp_ble_mesh/v1.1/api/models/esp_ble_mesh_mbt_model_api.c"
+                        "esp_ble_mesh/v1.1/api/models/esp_ble_mesh_dfu_model_api.c"
+                        "esp_ble_mesh/v1.1/api/models/esp_ble_mesh_dfu_slot_api.c"
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_agg_model.c"
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_brc_model.c"
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_df_model.c"
+                        "esp_ble_mesh/v1.1/btc/btc_ble_mesh_dfu_model.c"
+                        "esp_ble_mesh/v1.1/btc/btc_ble_mesh_dfu_slot.c"
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_lcd_model.c"
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_mbt_model.c"
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_odp_model.c"
@@ -633,30 +639,45 @@ if(CONFIG_BT_ENABLED)
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_rpr_model.c"
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_sar_model.c"
                         "esp_ble_mesh/v1.1/btc/btc_ble_mesh_srpl_model.c"
+                        "esp_ble_mesh/v1.1/mbt/blob_srv.c"
+                        "esp_ble_mesh/v1.1/mbt/blob_cli.c"
+                        "esp_ble_mesh/v1.1/dfu/dfu_cli.c"
+                        "esp_ble_mesh/v1.1/dfu/dfu_srv.c"
+                        "esp_ble_mesh/v1.1/dfu/dfu_slot.c"
+                        "esp_ble_mesh/v1.1/dfu/dfu_metadata.c"
+                        "esp_ble_mesh/v1.1/dfu/dfd_srv.c"
+                        "esp_ble_mesh/v1.1/dfu/dfd_cli.c"
                         "esp_ble_mesh/lib/ext.c")
+
             if(CONFIG_BLE_MESH_SAR_ENHANCEMENT)
                 list(APPEND srcs "esp_ble_mesh/core/transport.enh.c")
             else()
                 list(APPEND srcs "esp_ble_mesh/core/transport.c")
             endif()
         else()
-            list(APPEND srcs
-                        "esp_ble_mesh/core/transport.c")
+            list(APPEND srcs "esp_ble_mesh/core/transport.c")
         endif()
+
         if(CONFIG_BLE_MESH_SUPPORT_MULTI_ADV)
             list(APPEND srcs "esp_ble_mesh/core/ext_adv.c")
         else()
             list(APPEND srcs "esp_ble_mesh/core/adv.c")
         endif()
+
+        if(CONFIG_BLE_MESH_SUPPORT_BLE_ADV)
+            list(APPEND srcs "esp_ble_mesh/core/ble_adv.c")
+        endif()
     endif()
-
-
 
     if(CONFIG_BT_LE_CONTROLLER_NPL_OS_PORTING_SUPPORT)
         list(APPEND srcs
                 "porting/npl/freertos/src/npl_os_freertos.c"
                 "porting/mem/os_msys_init.c"
                 "porting/transport/src/hci_transport.c"
+        )
+
+        list(APPEND include_dirs
+            host/nimble/port/include
         )
 
         if(CONFIG_BT_CONTROLLER_DISABLED)
@@ -699,7 +720,12 @@ if(CONFIG_BT_ENABLED)
         )
     endif()
 
-    if(NOT (CONFIG_BT_LE_CRYPTO_STACK_MBEDTLS OR CONFIG_BT_NIMBLE_CRYPTO_STACK_MBEDTLS))
+    # Compile TinyCrypt if:
+    # 1. Controller uses TinyCrypt (not mbedTLS), OR
+    # 2. NimBLE uses TinyCrypt (not mbedTLS), OR
+    # 3. Bluedroid Host SMP uses TinyCrypt
+    if(CONFIG_BT_SMP_CRYPTO_STACK_TINYCRYPT OR
+       (NOT CONFIG_BT_LE_CRYPTO_STACK_MBEDTLS AND NOT CONFIG_BT_NIMBLE_CRYPTO_STACK_MBEDTLS))
         list(APPEND include_dirs
                 common/tinycrypt/include
                 common/tinycrypt/port
@@ -958,7 +984,7 @@ set(bt_priv_requires
 )
 
 if(CONFIG_BLE_COMPRESSED_LOG_ENABLE)
-    set(BT_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(CODE_BASE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
     # When log compression is enabled, selected logs are replaced
     # by auto-generated macros that emit pre-encoded data.
     # This eliminates the original format strings, reducing firmware size and

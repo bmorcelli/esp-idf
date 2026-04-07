@@ -399,6 +399,10 @@ config SOC_AHB_GDMA_SUPPORT_PSRAM
     bool
     default y
 
+config SOC_GDMA_EXT_MEM_ENC_ALIGNMENT
+    int
+    default 16
+
 config SOC_ETM_GROUPS
     int
     default 1
@@ -464,10 +468,6 @@ config SOC_GPIO_VALID_DIGITAL_IO_PAD_MASK
     default 0x3FFFFF80
 
 config SOC_GPIO_SUPPORT_FORCE_HOLD
-    bool
-    default y
-
-config SOC_GPIO_SUPPORT_HOLD_IO_IN_DSLP
     bool
     default y
 
@@ -856,6 +856,10 @@ config SOC_SPI_MEM_SUPPORT_TIMING_TUNING
     default y
 
 config SOC_SPI_MEM_SUPPORT_TSUS_TRES_SEPERATE_CTR
+    bool
+    default y
+
+config SOC_SPI_MEM_PSRAM_FREQ_AXI_CONSTRAINED
     bool
     default y
 
@@ -1295,6 +1299,10 @@ config SOC_WIFI_WAPI_SUPPORT
     bool
     default y
 
+config SOC_WIFI_TXOP_SUPPORT
+    bool
+    default y
+
 config SOC_WIFI_CSI_SUPPORT
     bool
     default y
@@ -1348,6 +1356,10 @@ config SOC_BLE_MULTI_CONN_OPTIMIZATION
     default y
 
 config SOC_BLE_CTE_SUPPORTED
+    bool
+    default y
+
+config SOC_BLE_PERIODIC_ADV_WITH_RESPONSE
     bool
     default y
 
