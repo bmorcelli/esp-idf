@@ -83,54 +83,20 @@ static int selected_boot_partition(const bootloader_state_t *bs)
 {
     int boot_index = bootloader_utility_get_selected_boot_partition(bs);
     if (boot_index == INVALID_INDEX) {
-        return boot_index; // Unrecoverable failure (not due to corrupt ota data or bad partition contents)
+        return boot_index; // Unrecoverable failure.
     }
-    if (esp_rom_get_reset_reason(0) != RESET_REASON_CORE_DEEP_SLEEP) {
-        // Factory firmware.
-#ifdef CONFIG_BOOTLOADER_FACTORY_RESET
-        bool reset_level = false;
-#if CONFIG_BOOTLOADER_FACTORY_RESET_PIN_HIGH
-        reset_level = true;
-#endif
-        if (bootloader_common_check_long_hold_gpio_level(CONFIG_BOOTLOADER_NUM_PIN_FACTORY_RESET, CONFIG_BOOTLOADER_HOLD_TIME_GPIO, reset_level) == GPIO_LONG_HOLD) {
-            ESP_LOGI(TAG, "Detect a condition of the factory reset");
-            bool ota_data_erase = false;
-#ifdef CONFIG_BOOTLOADER_OTA_DATA_ERASE
-            ota_data_erase = true;
-#endif
-            const char *list_erase = CONFIG_BOOTLOADER_DATA_FACTORY_RESET;
-            ESP_LOGI(TAG, "Data partitions to erase: %s", list_erase);
-            if (bootloader_common_erase_part_type_data(list_erase, ota_data_erase) == false) {
-                ESP_LOGE(TAG, "Not all partitions were erased");
-            }
-#ifdef CONFIG_BOOTLOADER_RESERVE_RTC_MEM
-            bootloader_common_set_rtc_retain_mem_factory_reset_state();
-#endif
-            return bootloader_utility_get_selected_boot_partition(bs);
+
+    // components/soc/esp32p4/include/soc/reset_reasons.h
+    int reset_reason = esp_rom_get_reset_reason(0);
+    if (reset_reason == RESET_REASON_CHIP_POWER_ON || reset_reason == RESET_REASON_CORE_DEEP_SLEEP || reset_reason == RESET_REASON_CORE_MWDT) {
+        if (bs->test.offset != 0) {
+            return TEST_APP_INDEX;
         }
-#endif // CONFIG_BOOTLOADER_FACTORY_RESET
-        // TEST firmware.
-#ifdef CONFIG_BOOTLOADER_APP_TEST
-        bool app_test_level = false;
-#if CONFIG_BOOTLOADER_APP_TEST_PIN_HIGH
-        app_test_level = true;
-#endif
-        if (bootloader_common_check_long_hold_gpio_level(CONFIG_BOOTLOADER_NUM_PIN_APP_TEST, CONFIG_BOOTLOADER_HOLD_TIME_GPIO, app_test_level) == GPIO_LONG_HOLD) {
-            ESP_LOGI(TAG, "Detect a boot condition of the test firmware");
-            if (bs->test.offset != 0) {
-                boot_index = TEST_APP_INDEX;
-                return boot_index;
-            } else {
-                ESP_LOGE(TAG, "Test firmware is not found in partition table");
-                return INVALID_INDEX;
-            }
+        if (bs->factory.offset != 0) {
+            return FACTORY_INDEX;
         }
-#endif // CONFIG_BOOTLOADER_APP_TEST
-        // Customer implementation.
-        // if (gpio_pin_1 == true && ...){
-        //     boot_index = required_boot_partition;
-        // } ...
     }
+
     return boot_index;
 }
 
